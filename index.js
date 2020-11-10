@@ -165,17 +165,23 @@ DynamoDBStream.prototype._getShardIterator = function(shardData, callback) {
       ShardId: shardData.shardId,
       ShardIteratorType: 'LATEST',
       StreamArn: this._streamArn
-    }
+    };
 
     this._ddbStreams.getShardIterator(params, function(err, result) {
-      if (err) return callback(err)
-      shardData.nextShardIterator = result.ShardIterator
-      callback()
+      if (err) {
+        if (err.code === 'TrimmedDataAccessException') {
+          shardData.nextShardIterator = null;
+          return callback();
+        }
+        return callback(err)
+      }
+      shardData.nextShardIterator = result.ShardIterator;
+      callback();
     })
   } catch (e) {
-    console.log('_getShardIterator', e)
+    console.log('_getShardIterator', e);
   }
-}
+};
 
 DynamoDBStream.prototype._getRecords = function(callback) {
   debug('_getRecords')
